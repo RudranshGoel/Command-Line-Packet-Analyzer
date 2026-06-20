@@ -4,6 +4,9 @@ import struct
 
 host = '192.168.1.7'
 
+
+
+
 def main():
     sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
     sniffer.bind((host, 0))
@@ -25,7 +28,11 @@ def main():
             print(f"Source: {source_ip}")
             print(f"Destination: {destination_ip}")
             TCP_segment = raw_buffer[20:]
-            
+            TCP_header = TCP_segment[:20]
+            source_port, destination_port = struct.unpack("! H H 16x", TCP_header)
+            print(f"Source port: {source_port}")
+            print(f"Destination port: {destination_port}")
+
 
     except KeyboardInterrupt: 
         print("\n Exiting...")
