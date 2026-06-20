@@ -1,7 +1,8 @@
 import socket
 import os 
+import struct 
 
-host = '192.168.1.5'
+host = '192.168.1.7'
 
 def main():
     sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
@@ -11,9 +12,21 @@ def main():
     print(f"Sniffer started on {host}. Listening for traffic...")
 
     try: 
-        while True:
-            raw_buffer = sniffer.recvfrom(65565)[0]
-            print(f"Caught raw Packet! Raw Data: {raw_buffer[:20]}")
+        # while True:
+            raw_buffer, addr = sniffer.recvfrom(65565)
+
+
+            IP_header = raw_buffer[:20]
+            ttl, protocol, source_ip, destination_ip = struct.unpack("! 8x B B 2x 4s 4s", IP_header)
+            print(f"Time to live: {ttl}")
+            print(f"Protcol: {protocol}")
+            source_ip = socket.inet_ntoa(source_ip)
+            destination_ip = socket.inet_ntoa(destination_ip)
+            print(f"Source: {source_ip}")
+            print(f"Destination: {destination_ip}")
+            TCP_segment = raw_buffer[20:]
+            
+
     except KeyboardInterrupt: 
         print("\n Exiting...")
     sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_OFF)
