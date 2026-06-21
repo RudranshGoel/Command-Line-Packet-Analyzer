@@ -48,6 +48,40 @@ def Resolve_ICMP(ICMP_Segment):
     return Type, Code, Application_Data
 
 
+def get_active_ip():
+    """
+    Creates a temporary dummy socket to determine the machine's 
+    primary local IP address facing the internet.
+    """
+    dummy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # We don't actually send any data, just forcing the OS to route
+        dummy_socket.connect(('8.8.8.8', 80))
+        local_ip = dummy_socket.getsockname()[0]
+    except Exception:
+        # Fallback in case there is no internet connection at all
+        local_ip = '127.0.0.1'
+    finally:
+        dummy_socket.close()
+    
+    return local_ip
+
+def print_options(args):
+    if args.protocol is not None: 
+        print(f"[*]Protocol: {args.protocol}")
+    else: 
+        print("[*]Protocol: Any")
+    if args.source is not None: 
+        print(f"[*]Source: {args.source}")
+    else: 
+        print("[*]Source: Any")
+            
+    if args.destination is not None: 
+        print(f"[*]Destination: {args.destination}")
+    else: 
+        print("[*]Destination: Any")
+    print("---------------------------------------------------------------------------")
+    
 def main():
     parser = argparse.ArgumentParser()
 
@@ -58,9 +92,8 @@ def main():
 
     args = parser.parse_args()
 
-    print(args)
 
-    host = '192.168.1.7'
+    host = get_active_ip()
     # AF_INET: IPv4, SOCK_RAW: Capture everything (TCP, UDP, ICMP...) IPPROTO_IP: IP protocol
     IP4_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
     IP4_socket.bind((host, 0))
@@ -71,7 +104,8 @@ def main():
     # Promiscuous mode would capture even the packets that are not meant for you
     IP4_socket.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
 
-    print(f"Sniffer started on {host}. Listening for traffic...")
+    print(f"[*] Sniffer started on {host}")
+    print_options(args)
 
 
     try:
@@ -88,6 +122,8 @@ def main():
                 6: 'TCP',
                 17: 'UDP'
             }
+
+            Protocol_Name = Protocol_map.get(Protocol, 'Unknown')
             if Protocol==1: 
                 Type, Code, Application_Data = Resolve_ICMP(Layer_3)
             elif Protocol==6: 
@@ -103,12 +139,12 @@ def main():
                 if Destination_IP != args.destination: 
                     drop = True
             if args.protocol is not None: 
-                if Protocol_map[Protocol].lower() != args.protocol.lower(): 
+                if Protocol_Name.lower() != args.protocol.lower(): 
                     drop = True
             
             if drop == False: 
                 #  Print packet 
-                print(f"{Protocol_map[Protocol]}\t{Source_IP}-->\t{Destination_IP}")
+                print(f"{Protocol_Name}\t{Source_IP}-->\t{Destination_IP}")
                 if args.count is not None: 
                     args.count -= 1 
 
@@ -116,7 +152,7 @@ def main():
 
 
     except KeyboardInterrupt: 
-        print("\n Exiting...")
+        print("\nExiting...")
     
     
 
