@@ -15,7 +15,7 @@ def main():
     print(f"Sniffer started on {host}. Listening for traffic...")
 
     try: 
-        # while True:
+        while True:
             raw_buffer, addr = sniffer.recvfrom(65565)
 
 

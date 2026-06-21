@@ -8,11 +8,11 @@ def Resolve_IP(IP_Packet):
     # Inputs binary form IP_Packet and returns TTL, Protocol, Source IP and Destination IP as integers and strings and TCP_Segment as binary
     # IP Header is 20 bytes 
     IP_Header = IP_Packet[:20]
-    TCP_Segment = IP_Packet[20:]
+    Layer_3 = IP_Packet[20:]
     TTL, Protocol, Source_IP, Destination_IP = struct.unpack("! 8x B B 2x 4s 4s", IP_Header)
     Source_IP = socket.inet_ntoa(Source_IP)
     Destination_IP = socket.inet_ntoa(Destination_IP)
-    return TTL, Protocol, Source_IP, Destination_IP, TCP_Segment
+    return TTL, Protocol, Source_IP, Destination_IP, Layer_3
 
 def Resolve_TCP(TCP_Segment):
     # TCP Header is 20 bytes 
@@ -52,8 +52,8 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-c', '--count', type = int, default=None, help='Number of packets to capture')
-    parser.add_argument('-s', '--source', '--from', type=str, default=None, help='Filter by Source IP')
-    parser.add_argument('-d', '--destination', '--to', type=str, default=None, help='Filter by Destination IP')
+    parser.add_argument('-src', '--source', type=str, default=None, help='Filter by Source IP')
+    parser.add_argument('-dst', '--destination', type=str, default=None, help='Filter by Destination IP')
     parser.add_argument('-t', '--protocol', type=str, default=None, help='Filter by Protocol (tcp, udp, icmp)')
 
     args = parser.parse_args()
@@ -70,7 +70,62 @@ def main():
     # Setting up promiscuous mode: Capture everything 
     # Promiscuous mode would capture even the packets that are not meant for you
     IP4_socket.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
+
     print(f"Sniffer started on {host}. Listening for traffic...")
+
+
+    try:
+        while (args.count is None) or (args.count != 0):
+            raw_buffer, addr = IP4_socket.recvfrom(65565)
+            TTL, Protocol, Source_IP, Destination_IP, Layer_3 = Resolve_IP(raw_buffer)
+
+            # Protocol Map: 
+            # 6--> TCP 
+            # 17--> UDP 
+            # 1--> ICMP
+            Protocol_map = {
+                1: 'ICMP',
+                6: 'TCP',
+                17: 'UDP'
+            }
+            if Protocol==1: 
+                Type, Code, Application_Data = Resolve_ICMP(Layer_3)
+            elif Protocol==6: 
+                Source_Port, Destination_Port, Application_Data = Resolve_TCP(Layer_3)
+            elif Protocol==17: 
+                Source_Port, Destination_Port, Application_Data = Resolve_UDP(Layer_3)
+
+            drop = False
+            if args.source is not None: 
+                if Source_IP != args.source: 
+                    drop = True
+            if args.destination is not None: 
+                if Destination_IP != args.destination: 
+                    drop = True
+            if args.protocol is not None: 
+                if Protocol_map[Protocol].lower() != args.protocol.lower(): 
+                    drop = True
+            
+            if drop == False: 
+                #  Print packet 
+                print(f"{Protocol_map[Protocol]}\t{Source_IP}-->\t{Destination_IP}")
+                if args.count is not None: 
+                    args.count -= 1 
+
+
+
+
+    except KeyboardInterrupt: 
+        print("\n Exiting...")
+    
+    
+
+
+    
+    
+    
+    IP4_socket.ioctl(socket.SIO_RCVALL, socket.RCVALL_OFF)
+        
 
 
 
