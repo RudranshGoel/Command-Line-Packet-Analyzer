@@ -1,17 +1,7 @@
 import socket
 import struct
+import argparse
 
-host = '192.168.1.7'
-# AF_INET: IPv4, SOCK_RAW: Capture everything (TCP, UDP, ICMP...) IPPROTO_IP: IP protocol
-IP4_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
-IP4_socket.bind((host, 0))
-# Include IP header (Windows would strip this by default)
-IP4_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
-
-# Setting up promiscuous mode: Capture everything 
-# Promiscuous mode would capture even the packets that are not meant for you
-IP4_socket.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
-print(f"Sniffer started on {host}. Listening for traffic...")
 
 
 def Resolve_IP(IP_Packet):
@@ -57,3 +47,32 @@ def Resolve_ICMP(ICMP_Segment):
     
     return Type, Code, Application_Data
 
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-c', '--count', type = int, default=None, help='Number of packets to capture')
+    parser.add_argument('-s', '--source', '--from', type=str, default=None, help='Filter by Source IP')
+    parser.add_argument('-d', '--destination', '--to', type=str, default=None, help='Filter by Destination IP')
+    parser.add_argument('-t', '--protocol', type=str, default=None, help='Filter by Protocol (tcp, udp, icmp)')
+
+    args = parser.parse_args()
+
+    print(args)
+
+    host = '192.168.1.7'
+    # AF_INET: IPv4, SOCK_RAW: Capture everything (TCP, UDP, ICMP...) IPPROTO_IP: IP protocol
+    IP4_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+    IP4_socket.bind((host, 0))
+    # Include IP header (Windows would strip this by default)
+    IP4_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+
+    # Setting up promiscuous mode: Capture everything 
+    # Promiscuous mode would capture even the packets that are not meant for you
+    IP4_socket.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
+    print(f"Sniffer started on {host}. Listening for traffic...")
+
+
+
+if __name__== "__main__": 
+    main()
