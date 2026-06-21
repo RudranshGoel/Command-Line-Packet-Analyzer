@@ -18,8 +18,21 @@ def Resolve_TCP(TCP_Segment):
     # TCP Header is 20 bytes 
     TCP_header = TCP_Segment[:20]
     Application_Data = TCP_Segment[20:]
-    Source_Port, Destination_Port = struct.unpack("! H H 16x", TCP_header)
-    return Source_Port, Destination_Port, Application_Data
+    Source_Port, Destination_Port, Seq_No, Ack_No, Offer_Reserved_Flags = struct.unpack("! H H L L H 6x", TCP_header)
+    flag_urg = (Offer_Reserved_Flags & 32) >> 5
+    flag_ack = (Offer_Reserved_Flags & 16) >> 4
+    flag_psh = (Offer_Reserved_Flags & 8) >> 3
+    flag_rst = (Offer_Reserved_Flags & 4) >> 2
+    flag_syn = (Offer_Reserved_Flags & 2) >> 1
+    flag_fin = Offer_Reserved_Flags & 1
+    s = "TCP Flags: "
+    if flag_urg: s +='URG '
+    if flag_ack: s+=('ACK ')
+    if flag_psh: s+=('PSH ')
+    if flag_rst: s+=('RST ')
+    if flag_syn: s+=('SYN ')
+    if flag_fin: s+=('FIN ')
+    return Source_Port, Destination_Port, Application_Data, s
 
 def Resolve_UDP(UDP_Segment):
     # The UDP header is always exactly 8 bytes
@@ -81,7 +94,7 @@ def print_options(args):
     else: 
         print("[*]Destination: Any")
     print("---------------------------------------------------------------------------")
-    
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -107,9 +120,9 @@ def main():
     print(f"[*] Sniffer started on {host}")
     print_options(args)
 
-
+    count=0
     try:
-        while (args.count is None) or (args.count != 0):
+        while (args.count is None) or (count < args.count):
             raw_buffer, addr = IP4_socket.recvfrom(65565)
             TTL, Protocol, Source_IP, Destination_IP, Layer_3 = Resolve_IP(raw_buffer)
 
@@ -127,7 +140,7 @@ def main():
             if Protocol==1: 
                 Type, Code, Application_Data = Resolve_ICMP(Layer_3)
             elif Protocol==6: 
-                Source_Port, Destination_Port, Application_Data = Resolve_TCP(Layer_3)
+                Source_Port, Destination_Port, Application_Data, Flag_info = Resolve_TCP(Layer_3)
             elif Protocol==17: 
                 Source_Port, Destination_Port, Application_Data = Resolve_UDP(Layer_3)
 
@@ -144,9 +157,22 @@ def main():
             
             if drop == False: 
                 #  Print packet 
-                print(f"{Protocol_Name}\t{Source_IP}-->\t{Destination_IP}")
-                if args.count is not None: 
-                    args.count -= 1 
+                count += 1
+                print(f"{count}\t{Protocol_Name}\t{Source_IP}-->\t{Destination_IP}", end="\t")
+                if Protocol == 1: 
+                    ICMP_Type = {
+                        0: 'Echo reply',
+                        3: 'Destination unreachable',
+                        5: 'Redirect message',
+                        8: 'Echo request',
+                        11: 'Time exceeded',
+                        12: 'Parameter problem',
+                    }
+                    print(f"Type={ICMP_Type[Type]}, Code={Code}")
+                elif Protocol == 6: 
+                    print(f"s_port={Source_Port}, d_port={Destination_Port}, {Flag_info}")
+                else: 
+                    print(f"s_port={Source_Port}, d_port={Destination_Port}")
 
 
 
