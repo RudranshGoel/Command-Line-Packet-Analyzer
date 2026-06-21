@@ -23,8 +23,10 @@ def main():
             ttl, protocol, source_ip, destination_ip = struct.unpack("! 8x B B 2x 4s 4s", IP_header)
             print(f"Time to live: {ttl}")
             print(f"Protcol: {protocol}")
+            print(type(ttl))
             source_ip = socket.inet_ntoa(source_ip)
             destination_ip = socket.inet_ntoa(destination_ip)
+            print(type(source_ip))
             print(f"Source: {source_ip}")
             print(f"Destination: {destination_ip}")
             TCP_segment = raw_buffer[20:]
