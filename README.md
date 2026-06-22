@@ -15,10 +15,10 @@ Run this command to see the available filtering options
 ```bash
 python Mini_Wireshark.py -h
 ``` 
-![](image.png)
+![](/Images/image.png)
 
 Here's what a sample output looks like
-![alt text](image-1.png)
+![alt text](/Images/image-1.png)
 Note - This script needs to run in administrator mode
 ## Technical debrief
 * This project was built from scratch in pure Python using ```socket``` and ```struct```  libraries
