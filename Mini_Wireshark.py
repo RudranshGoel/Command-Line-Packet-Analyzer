@@ -96,7 +96,9 @@ def print_options(args):
     print("---------------------------------------------------------------------------")
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=lambda prog: argparse.HelpFormatter(prog, max_help_position=50)
+    )
 
     parser.add_argument('-c', '--count', type = int, default=None, help='Number of packets to capture')
     parser.add_argument('-src', '--source', type=str, default=None, help='Filter by Source IP')
@@ -158,7 +160,7 @@ def main():
             if drop == False: 
                 #  Print packet 
                 count += 1
-                print(f"{count}\t{Protocol_Name}\t{Source_IP}-->\t{Destination_IP}", end="\t")
+                print(f"{count:<5}{Protocol_Name:<7}{Source_IP:<15}-->{Destination_IP:<15}", end="\t")
                 if Protocol == 1: 
                     ICMP_Type = {
                         0: 'Echo reply',
